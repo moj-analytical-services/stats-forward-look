@@ -4,6 +4,8 @@ library(jsonlite)
 library(rvest)
 library(stringr)
 library(openxlsx)
+library(lubridate)
+library(tidyr)
 
 searchurl <- "https://www.gov.uk/search/research-and-statistics?content_store_document_type=upcoming_statistics&organisations=ministry-of-justice&order=release-date-oldest"
 
@@ -66,35 +68,69 @@ if (i == 1) {
 
 }
 
-names(prerelease_all) <- c("Publication Title", 
+prerelease_all$publication.date <- stringr::str_remove(prerelease_all$publication.date," 9:30am")
+
+prerelease_all$Week <- lubridate::isoweek(dmy(prerelease_all$publication.date))
+prerelease_all$Year <- lubridate::year(dmy(prerelease_all$publication.date))
+
+
+Allweeks <- as.data.frame(c(1:52)) %>%
+  crossing(unique(prerelease_all$Year))
+
+names(Allweeks) <- c("Week","Year")
+
+
+prerelease_weeks <- left_join(Allweeks,filter(prerelease_all,publication.status != "cancelled")) %>%
+  arrange(Year,Week)
+
+prerelease_weeks$WC <- format(as.Date(paste(prerelease_weeks$Year, prerelease_weeks$Week, 1, sep="-"), "%Y-%U-%u"),"%d %b %Y")
+
+rowvector <- 1:nrow(prerelease_weeks)
+
+prerelease_all <- prerelease_weeks[min(rowvector[!is.na(prerelease_weeks$publication.date)]):max(rowvector[!is.na(prerelease_weeks$publication.date)]),]
+
+names(prerelease_all) <- c("Week",
+                           "Year",
+                           "Publication Title", 
                            "Announcement URL",
                            "Statistics Type",
                            "Department",
                            "Publication Date",
-                           "Status")
+                           "Status",
+                           "Week Commencing")
 
-openxlsx::write.xlsx(select(filter(prerelease_all,Status != "cancelled"),
-                            c("Publication Title","Publication Date","Status")),
-                     "Excel.xlsx")
+wb <- openxlsx::createWorkbook()
+openxlsx::addWorksheet(wb,"Forward Look")
+openxlsx::writeData(wb,"Forward Look",select(prerelease_all,
+                                             c("Week Commencing","Publication Title","Publication Date","Status","Week")))
 
-# create workbook
-wb <- createWorkbook()
+evenStyle <- createStyle(bgFill = "#b4c6e7")
+oddStyle <- createStyle(bgFill = "#d9e1f2")
+hideStyleEven <- createStyle(bgFill = "#b4c6e7", fontColour = "#b4c6e7")
+hideStyleOdd <- createStyle(bgFill = "#d9e1f2", fontColour = "#d9e1f2")
+border <- createStyle(border="top", borderColour = "#FFFFFF")
 
-# add Excel sheet
-addWorksheet(wb, "Forward_Look")
+conditionalFormatting(wb, "Forward Look", cols = 1:5, rows = 1:nrow(prerelease_all)+1, rule = "=AND(LEN($E2)>0,MOD(RIGHT($E2,2),2)=0)",
+                      style = evenStyle)
+conditionalFormatting(wb, "Forward Look", cols = 1:5, rows = 1:nrow(prerelease_all)+1, rule = "=AND(LEN($E2)>0,MOD(RIGHT($E2,2),2)=1)",
+                      style = oddStyle)
+conditionalFormatting(wb, "Forward Look", cols = 1, rows = 1:nrow(prerelease_all)+1, rule = "=AND(LEN($E2)>0,MOD(RIGHT($E2,2),2)=0,$E2=$E1)",
+                      style = hideStyleEven)
+conditionalFormatting(wb, "Forward Look", cols = 1, rows = 1:nrow(prerelease_all)+1, rule = "=AND(LEN($E2)>0,MOD(RIGHT($E2,2),2)=1,$E2=$E1)",
+                      style = hideStyleOdd)
+conditionalFormatting(wb, "Forward Look", cols = 1:5, rows = 1:nrow(prerelease_all)+1, rule = "=AND($E2<>$E1)",
+                      style = border)
 
-# create style, in this case bold header
-header_st <- createStyle(textDecoration = "Bold")
+setColWidths(wb,1,cols = c(1:5),widths=c(18,"auto",24,12,12),hidden=c(rep(FALSE,4),TRUE))
 
-# Write data with header style defined above
-writeData(wb, "Forward_Look", 
-          select(filter(prerelease_all,Status != "cancelled"),
-                                     c("Publication Title","Publication Date","Status")),
-          headerStyle = header_st)
+header_st <- createStyle(fgFill = "#1F497D", textDecoration = "Bold", fontColour = "#FFFFFF")
 
-setColWidths(wb,1,cols = c(1:3),widths="auto")
+cell_st <- createStyle(halign = "left")
+openxlsx::addStyle(wb,1,header_st,1,c(1:5))
 
-# save to .xlsx file
-saveWorkbook(wb, paste0("Forward Look_",Sys.Date(),".xlsx"), overwrite = TRUE)
+addStyle(wb, 1, style = cell_st, cols = 1:5, rows = 1:nrow(prerelease_all)+1, gridExpand = TRUE, stack = TRUE)
 
+showGridLines(wb, 1, showGridLines = FALSE)
+
+openxlsx::saveWorkbook(wb, paste0("Forward Look_",Sys.Date(),".xlsx"), overwrite = TRUE)
 
