@@ -107,8 +107,7 @@ wb <- openxlsx::createWorkbook()
 openxlsx::addWorksheet(wb,"Forward Look")
 openxlsx::writeData(wb,"Forward Look","MoJ Statistics Forward Look",
                     startRow = 1)
-openxlsx::writeData(wb,"Forward Look","This list contains a week-by-week view of  MoJ Official and National Statistics that have been pre-announced on the gov.uk release calendar",
-                    startRow = 2)
+openxlsx::writeData(wb,"Forward Look",paste("This list contains a week-by-week view of  MoJ Official and National Statistics that have been pre-announced on the gov.uk release calendar as at",format(Sys.Date(),"%d %B %Y")), startRow = 2)
 openxlsx::writeData(wb,"Forward Look",govuk_link,startRow = 3)
 openxlsx::writeData(wb,"Forward Look",select(prerelease_all,
                                              c("Week Commencing","Publication Title","Publication Date","Status","Week")),startRow = 4)
