@@ -99,38 +99,55 @@ names(prerelease_all) <- c("Week",
                            "Status",
                            "Week Commencing")
 
+govuk_link <- c("https://www.gov.uk/search/research-and-statistics?content_store_document_type=upcoming_statistics&organisations%5B%5D=ministry-of-justice&order=release-date-oldest")
+names(govuk_link) <- c("Click here to view on the gov.uk Research and Statistics calendar")
+class(govuk_link) <- "hyperlink"
+
 wb <- openxlsx::createWorkbook()
 openxlsx::addWorksheet(wb,"Forward Look")
+openxlsx::writeData(wb,"Forward Look","MoJ Statistics Forward Look",
+                    startRow = 1)
+openxlsx::writeData(wb,"Forward Look","This list contains a week-by-week view of  MoJ Official and National Statistics that have been pre-announced on the gov.uk release calendar",
+                    startRow = 2)
+openxlsx::writeData(wb,"Forward Look",govuk_link,startRow = 3)
 openxlsx::writeData(wb,"Forward Look",select(prerelease_all,
-                                             c("Week Commencing","Publication Title","Publication Date","Status","Week")))
+                                             c("Week Commencing","Publication Title","Publication Date","Status","Week")),startRow = 4)
 
+titleStyle <- createStyle(fontSize = 14, textDecoration = "bold")
+subtitleStyle <- createStyle(fontSize = 12)
+linkStyle <- createStyle(fontSize = 12, valign = "top")
 evenStyle <- createStyle(bgFill = "#b4c6e7")
 oddStyle <- createStyle(bgFill = "#d9e1f2")
 hideStyleEven <- createStyle(bgFill = "#b4c6e7", fontColour = "#b4c6e7")
 hideStyleOdd <- createStyle(bgFill = "#d9e1f2", fontColour = "#d9e1f2")
 border <- createStyle(border="top", borderColour = "#FFFFFF")
 
-conditionalFormatting(wb, "Forward Look", cols = 1:5, rows = 1:nrow(prerelease_all)+1, rule = "=AND(LEN($E2)>0,MOD(RIGHT($E2,2),2)=0)",
+conditionalFormatting(wb, "Forward Look", cols = 1:5, rows = 1:nrow(prerelease_all)+4, rule = "=AND(LEN($E5)>0,MOD(RIGHT($E5,2),2)=0)",
                       style = evenStyle)
-conditionalFormatting(wb, "Forward Look", cols = 1:5, rows = 1:nrow(prerelease_all)+1, rule = "=AND(LEN($E2)>0,MOD(RIGHT($E2,2),2)=1)",
+conditionalFormatting(wb, "Forward Look", cols = 1:5, rows = 1:nrow(prerelease_all)+4, rule = "=AND(LEN($E5)>0,MOD(RIGHT($E5,2),2)=1)",
                       style = oddStyle)
-conditionalFormatting(wb, "Forward Look", cols = 1, rows = 1:nrow(prerelease_all)+1, rule = "=AND(LEN($E2)>0,MOD(RIGHT($E2,2),2)=0,$E2=$E1)",
+conditionalFormatting(wb, "Forward Look", cols = 1, rows = 1:nrow(prerelease_all)+4, rule = "=AND(LEN($E5)>0,MOD(RIGHT($E5,2),2)=0,$E5=$E4)",
                       style = hideStyleEven)
-conditionalFormatting(wb, "Forward Look", cols = 1, rows = 1:nrow(prerelease_all)+1, rule = "=AND(LEN($E2)>0,MOD(RIGHT($E2,2),2)=1,$E2=$E1)",
+conditionalFormatting(wb, "Forward Look", cols = 1, rows = 1:nrow(prerelease_all)+4, rule = "=AND(LEN($E5)>0,MOD(RIGHT($E5,2),2)=1,$E5=$E4)",
                       style = hideStyleOdd)
-conditionalFormatting(wb, "Forward Look", cols = 1:5, rows = 1:nrow(prerelease_all)+1, rule = "=AND($E2<>$E1)",
+conditionalFormatting(wb, "Forward Look", cols = 1:5, rows = 1:nrow(prerelease_all)+4, rule = "=AND($E5<>$E4)",
                       style = border)
 
 setColWidths(wb,1,cols = c(1:5),widths=c(18,"auto",24,12,12),hidden=c(rep(FALSE,4),TRUE))
+setRowHeights(wb,1,3,30)
 
 header_st <- createStyle(fgFill = "#1F497D", textDecoration = "Bold", fontColour = "#FFFFFF")
 
 cell_st <- createStyle(halign = "left")
-openxlsx::addStyle(wb,1,header_st,1,c(1:5))
 
-addStyle(wb, 1, style = cell_st, cols = 1:5, rows = 1:nrow(prerelease_all)+1, gridExpand = TRUE, stack = TRUE)
+openxlsx::addStyle(wb,1,header_st,4,c(1:5))
+addStyle(wb, 1, style = titleStyle, rows = 1, cols = 1)
+addStyle(wb, 1, style = subtitleStyle, rows = 2, cols = 1)
+addStyle(wb, 1, style = linkStyle, rows = 3, cols = 1, stack = TRUE)
+
+addStyle(wb, 1, style = cell_st, cols = 1:5, rows = 5:nrow(prerelease_all)+4, gridExpand = TRUE, stack = TRUE)
 
 showGridLines(wb, 1, showGridLines = FALSE)
 
-openxlsx::saveWorkbook(wb, paste0("Forward Look_",Sys.Date(),".xlsx"), overwrite = TRUE)
+openxlsx::saveWorkbook(wb, paste0("Forward Look/Forward Look.xlsx"), overwrite = TRUE)
 
