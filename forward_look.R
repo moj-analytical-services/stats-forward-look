@@ -81,7 +81,7 @@ names(Allweeks) <- c("Week","Year")
 prerelease_weeks    <- left_join(Allweeks,filter(prerelease_all,publication.status != "cancelled")) %>%
   arrange(Year,Week)
 prerelease_weeks$WC <- format(as.Date(paste(prerelease_weeks$Year, prerelease_weeks$Week, 
-                                            1, sep="-"), "%Y-%U-%u"),"%d %b %Y")
+                                            1, sep="-"), "%Y-%W-%u"),"%d %b %Y")
 
 rowvector      <- 1:nrow(prerelease_weeks)
 prerelease_all <- prerelease_weeks[min(rowvector[!is.na(prerelease_weeks$publication.date)]):
@@ -130,8 +130,7 @@ wb <- openxlsx::createWorkbook()
 openxlsx::addWorksheet(wb, "Forward Look")
 openxlsx::writeData(wb, "Forward Look","MoJ Statistics Forward Look",
                     startRow = 1)
-openxlsx::writeData(wb,"Forward Look", paste("This list contains a week-by-week view of  MoJ Official and National Statistics
-                                            that have been pre-announced on the gov.uk release calendar as at",
+openxlsx::writeData(wb,"Forward Look", paste("This list contains a week-by-week view of  MoJ Official and National Statistics that have been pre-announced on the gov.uk release calendar as at",
                                             format(Sys.Date(),"%d %B %Y")), startRow = 2)
 openxlsx::writeData(wb,"Forward Look", govuk_link,startRow = 3)
 selections <- c("Week Commencing",
@@ -162,7 +161,7 @@ conditionalFormatting(wb, "Forward Look", cols = 1, rows = 1:nrow(prerelease_all
 conditionalFormatting(wb, "Forward Look", cols = 1:6, rows = 1:nrow(prerelease_all)+4,
                       rule = "=AND($E5<>$E4)", style = border)
 
-setColWidths(wb, 1, cols = c(1:6), widths=c(14,"auto",30,10,10), hidden=c(rep(FALSE,4),TRUE))
+setColWidths(wb, 1, cols = c(1:6), widths=c(18,"auto",30,10,10), hidden=c(rep(FALSE,4),TRUE))
 setRowHeights(wb, 1, 3, 30)
 
 header_st <- createStyle(fgFill = "#1F497D", textDecoration = "Bold", fontColour = "#FFFFFF")
