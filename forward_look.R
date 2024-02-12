@@ -1,4 +1,9 @@
 # <------------------------------------------------------- LIBRARIES ------------------------------------------------------->
+
+install.packages("renv")
+library(renv)
+renv::restore()
+
 library(magrittr)
 library(dplyr)
 library(jsonlite)
@@ -55,7 +60,7 @@ for (i in 1:as.numeric(pages)) {
   rownames(pub_attribs) <- NULL
   names(pub_attribs)    <- c("publication.type",
                              "publication.department",
-                             "publication.date",
+                             "publication.date.temp",
                              "publication.status")
   
   prerelease <- as.data.frame(cbind(publication_name,publication_url,pub_attribs))
@@ -68,24 +73,34 @@ for (i in 1:as.numeric(pages)) {
   
 }
 
-prerelease_all$publication.date <- stringr::str_remove(prerelease_all$publication.date," 9:30am")
-prerelease_all$Week             <- lubridate::isoweek(dmy(prerelease_all$publication.date))
-prerelease_all$Year             <- lubridate::year(dmy(prerelease_all$publication.date))
+prerelease_all$publication.date.temp <- stringr::str_remove(prerelease_all$publication.date.temp," 9:30am")
+
+prerelease_all2 <- prerelease_all %>%
+  mutate(publication.date = ifelse(grepl("^[[:digit:]]+", publication.date.temp), publication.date.temp, paste0("1 ", publication.date.temp)),
+         Week = lubridate::isoweek(dmy(publication.date)),
+         Year = lubridate::year(dmy(publication.date))) %>%
+  select(-publication.date.temp)
+
+dates <- as.data.frame(format(seq(as.Date("2 January 2023", format = "%d %b %Y"), as.Date("27 December 2026", format = "%d %b %Y"), by="days"), format="%d %b %Y"))
+
+dates_new <- dates %>%
+  mutate(Week = rep(1:52, each = 7, times = 4)) %>%
+  mutate(week_num2 = rep(1:7, each = 1, times = nrow(dates)/7)) %>%
+  rename("Week_commences" = 1) %>%
+  mutate(Year = as.numeric(substr(Week_commences, nchar(Week_commences)-4, nchar(Week_commences))))%>%
+  filter(week_num2 == 1)
 
 
-Allweeks <- as.data.frame(c(1:52)) %>%
-  crossing(unique(prerelease_all$Year))
-names(Allweeks) <- c("Week","Year")
+prerelease_weeks <- dates_new %>%
+  full_join(prerelease_all2 %>% filter(publication.status != "cancelled"), by = c("Week" = "Week",
+                                                                                  "Year" = "Year")) %>%
+  arrange(Year,Week) %>%
+  select(Week, Year, publication_name, publication_url, publication.type, publication.department, publication.date, publication.status, Week_commences)
 
-
-prerelease_weeks    <- left_join(Allweeks,filter(prerelease_all,publication.status != "cancelled")) %>%
-  arrange(Year,Week)
-prerelease_weeks$WC <- format(as.Date(paste(prerelease_weeks$Year, prerelease_weeks$Week, 
-                                            1, sep="-"), "%Y-%W-%u"),"%d %b %Y")
 
 rowvector      <- 1:nrow(prerelease_weeks)
 prerelease_all <- prerelease_weeks[min(rowvector[!is.na(prerelease_weeks$publication.date)]):
-                                   max(rowvector[!is.na(prerelease_weeks$publication.date)]),]
+                                     max(rowvector[!is.na(prerelease_weeks$publication.date)]),]
 
 names(prerelease_all) <- c("Week",
                            "Year",
@@ -175,11 +190,5 @@ addStyle(wb, 1, style = linkStyle, rows = 3, cols = 1, stack = TRUE)
 addStyle(wb, 1, style = cell_st, cols = 1:6, rows = 5:nrow(prerelease_all)+4, gridExpand = TRUE, stack = TRUE)
 showGridLines(wb, 1, showGridLines = FALSE)
 
-# save file to AWS S3 bucket
-s3_bucket <- "alpha-forward-look"
-filename  <- "Forward Look.xlsx"
+saveWorkbook(wb, "Forward Look/Forward Look.xlsx", overwrite = TRUE, returnValue = FALSE)
 
-Rs3tools::write_using(wb, openxlsx::saveWorkbook, paste0(s3_bucket, "/", filename), overwrite=TRUE)
-
-# save file locally
-# openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
