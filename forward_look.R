@@ -76,7 +76,14 @@ for (i in 1:as.numeric(pages)) {
 prerelease_all$publication.date.temp <- stringr::str_remove(prerelease_all$publication.date.temp," 9:30am")
 
 prerelease_all2 <- prerelease_all %>%
-  mutate(publication.date = ifelse(grepl("^[[:digit:]]+", publication.date.temp), publication.date.temp, paste0("1 ", publication.date.temp)),
+  mutate(publication.date = 
+           case_when(
+             grepl("^[[:digit:]]+", publication.date.temp) == TRUE ~ publication.date.temp,
+             grepl("February", publication.date.temp) == TRUE & grepl("2024|2028|2032|2036|2040", publication.date.temp) == TRUE ~ paste0("29 ", publication.date.temp),
+             grepl("February", publication.date.temp) == TRUE & grepl("2024|2028|2032|2036|2040", publication.date.temp) == FALSE ~ paste0("28 ", publication.date.temp),
+             grepl("April|June|September|November", publication.date.temp) == TRUE ~ paste0("30 ", publication.date.temp),
+             TRUE ~ paste0("31 ", publication.date.temp)
+           ),
          Week = lubridate::isoweek(dmy(publication.date)),
          Year = lubridate::year(dmy(publication.date))) %>%
   select(-publication.date.temp)
