@@ -1,6 +1,6 @@
 # <------------------------------------------------------- LIBRARIES ------------------------------------------------------->
 
-install.packages("renv")
+
 library(renv)
 renv::restore()
 
@@ -72,6 +72,7 @@ for (i in 1:as.numeric(pages)) {
   }
   
 }
+
 
 prerelease_all$publication.date.temp <- stringr::str_remove(prerelease_all$publication.date.temp," 9:30am")
 prerelease_all$publication.date.temp <- stringr::str_remove(prerelease_all$publication.date.temp," 9:03am")
