@@ -76,6 +76,7 @@ for (i in 1:as.numeric(pages)) {
 
 prerelease_all$publication.date.temp <- stringr::str_remove(prerelease_all$publication.date.temp," 9:30am")
 prerelease_all$publication.date.temp <- stringr::str_remove(prerelease_all$publication.date.temp," 9:03am")
+prerelease_all$publication.date.temp <- stringr::str_remove(prerelease_all$publication.date.temp," 10:00am")
 
 prerelease_all2 <- prerelease_all %>%
   mutate(publication.date = 
