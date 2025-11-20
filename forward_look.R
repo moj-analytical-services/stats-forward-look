@@ -12,6 +12,7 @@ library(stringr)
 library(openxlsx)
 library(lubridate)
 library(tidyr)
+library(fuzzyjoin)
 
 
 # <------------------------------------------------------- FUNCTIONS ------------------------------------------------------->
@@ -51,7 +52,7 @@ for (i in 1:as.numeric(pages)) {
     html_attr("href")
   publication_name <- process_html(search_url, ".gem-c-document-list") %>% 
     html_nodes("a") %>%
-    html_text()
+    html_text(trim=TRUE)
   pub_attribs      <- process_html(search_url, ".gem-c-document-list__item")
   
   pub_attribs <- t(as.data.frame(lapply(pub_attribs,get_info)))
@@ -63,7 +64,14 @@ for (i in 1:as.numeric(pages)) {
                              "publication.date.temp",
                              "publication.status")
   
-  prerelease <- as.data.frame(cbind(publication_name,publication_url,pub_attribs))
+  publication_desc <- character()
+  for(j in publication_url){
+    publication_desc_t <- process_html(paste0("https://www.gov.uk", j), ".govuk-grid-row") %>% html_nodes(".gem-c-lead-paragraph") %>%
+      html_text(trim=TRUE)
+    publication_desc <- c(publication_desc, publication_desc_t)
+  }
+  
+  prerelease <- as.data.frame(cbind(publication_name,publication_url, publication_desc, pub_attribs))
   
   if (i == 1) {
       prerelease_all <- prerelease
@@ -73,12 +81,30 @@ for (i in 1:as.numeric(pages)) {
   
 }
 
+prerelease_all_t <- prerelease_all %>% 
+                  mutate(long_title = sub("[[:space:]]*[,:[:digit:]].*$", "", publication_name))
 
-prerelease_all$publication.date.temp <- stringr::str_remove(prerelease_all$publication.date.temp," 9:30am")
-prerelease_all$publication.date.temp <- stringr::str_remove(prerelease_all$publication.date.temp," 9:03am")
-prerelease_all$publication.date.temp <- stringr::str_remove(prerelease_all$publication.date.temp," 10:00am")
 
-prerelease_all2 <- prerelease_all %>%
+for (i in seq_along(prerelease_all_t$long_title)) {
+  if (grepl("(His|Her|HM).*Prison.*Probation Service", prerelease_all_t$long_title[i], ignore.case = TRUE)) {
+    # Find the position where the phrase ends
+    rest <- sub("(?i)(His|Her|HM).*Prison.*Probation Service", "", prerelease_all_t$long_title[i], perl = TRUE)
+    prerelease_all_t$long_title[i] <- paste("HMPPS", trimws(rest))
+  }
+}
+
+
+lookup_wb <- read.xlsx("Publication leads test.xlsx") %>% select(long_title, `Publication.Month(s)`, `Lead.Contact`, G6, G7, `Justice.Data`)
+prerelease_all_tt <- prerelease_all_t %>% 
+  mutate(long_title=str_squish(str_to_lower(long_title))) %>%
+  left_join(lookup_wb %>% mutate(long_title=str_squish(str_to_lower(long_title))), by="long_title") 
+
+
+prerelease_all_tt$publication.date.temp <- stringr::str_remove(prerelease_all_tt$publication.date.temp," 9:30am")
+prerelease_all_tt$publication.date.temp <- stringr::str_remove(prerelease_all_tt$publication.date.temp," 9:03am")
+prerelease_all_tt$publication.date.temp <- stringr::str_remove(prerelease_all_tt$publication.date.temp," 10:00am")
+
+prerelease_all2 <- prerelease_all_tt %>%
   mutate(publication.date = 
            case_when(
              grepl("^[[:digit:]]+", publication.date.temp) == TRUE ~ publication.date.temp,
@@ -101,12 +127,18 @@ dates_new <- dates %>%
   filter(week_num2 == 1)
 
 
-prerelease_weeks <- dates_new %>%
-  full_join(prerelease_all2 %>% filter(publication.status != "cancelled"), by = c("Week" = "Week",
-                                                                                  "Year" = "Year")) %>%
-  arrange(Year,Week) %>%
-  select(Week, Year, publication_name, publication_url, publication.type, publication.department, publication.date, publication.status, Week_commences)
+#prerelease_weeks <- dates_new %>%
+#  full_join(prerelease_all2 %>% filter(publication.status != "cancelled"), by = c("Week" = "Week",
+#                                                                                  "Year" = "Year")) %>%
+#  arrange(Year,Week) %>%
+#  select(Week, Year, publication_name, publication_url, publication_desc, publication.type, publication.department, publication.date, publication.status, Week_commences)
 
+prerelease_weeks <- dates_new %>%
+    full_join(prerelease_all2, by = c("Week" = "Week",
+                                      "Year" = "Year")) %>%
+    arrange(Year,Week) %>%
+    select(Week, Year, publication_name, publication_url, publication_desc, publication.type, publication.department, publication.date, publication.status, Week_commences, `Publication.Month(s)`, `Lead.Contact`, G7, G6, `Justice.Data`)
+  
 
 rowvector      <- 1:nrow(prerelease_weeks)
 prerelease_all <- prerelease_weeks[min(rowvector[!is.na(prerelease_weeks$publication.date)]):
@@ -116,11 +148,17 @@ names(prerelease_all) <- c("Week",
                            "Year",
                            "Publication Title", 
                            "Announcement URL",
+                           "Description",
                            "Statistics Type",
                            "Department",
                            "Publication Date",
                            "Status",
-                           "Week Commencing")
+                           "Week Commencing",
+                           "Typical publication month(s)",
+                           "Lead contact",
+                           "G7",
+                           "G6",
+                           "Justice Data")
 
 # for testing purposes
 # prerelease_all = rbind(prerelease_all, c(6, 2024, "Experimental release"))
@@ -163,7 +201,8 @@ selections <- c("Week Commencing",
                 "Publication Date",
                 "Status",
                 "Week",
-                "Type")
+                "Type",
+                "Description")
 openxlsx::writeData(wb,"Forward Look", select(prerelease_all, all_of(selections)), startRow = 4)
 
 titleStyle    <- createStyle(fontSize = 14, textDecoration = "bold")
@@ -174,30 +213,32 @@ oddStyle      <- createStyle(bgFill = "#d9e1f2")
 hideStyleEven <- createStyle(bgFill = "#b4c6e7", fontColour = "#b4c6e7")
 hideStyleOdd  <- createStyle(bgFill = "#d9e1f2", fontColour = "#d9e1f2")
 border        <- createStyle(border="top", borderColour = "#FFFFFF")
+wrap_style    <- createStyle(wrapText = TRUE, valign="bottom")
 
-conditionalFormatting(wb, "Forward Look", cols = 1:6, rows = 1:nrow(prerelease_all)+4,
+conditionalFormatting(wb, "Forward Look", cols = 1:7, rows = 1:nrow(prerelease_all)+4,
                       rule = "=AND(LEN($E5)>0,MOD(RIGHT($E5,2),2)=0)", style = evenStyle)
-conditionalFormatting(wb, "Forward Look", cols = 1:6, rows = 1:nrow(prerelease_all)+4,
+conditionalFormatting(wb, "Forward Look", cols = 1:7, rows = 1:nrow(prerelease_all)+4,
                       rule = "=AND(LEN($E5)>0,MOD(RIGHT($E5,2),2)=1)", style = oddStyle)
 conditionalFormatting(wb, "Forward Look", cols = 1, rows = 1:nrow(prerelease_all)+4,
                       rule = "=AND(LEN($E5)>0,MOD(RIGHT($E5,2),2)=0,$E5=$E4)", style = hideStyleEven)
 conditionalFormatting(wb, "Forward Look", cols = 1, rows = 1:nrow(prerelease_all)+4,
                       rule = "=AND(LEN($E5)>0,MOD(RIGHT($E5,2),2)=1,$E5=$E4)", style = hideStyleOdd)
-conditionalFormatting(wb, "Forward Look", cols = 1:6, rows = 1:nrow(prerelease_all)+4,
+conditionalFormatting(wb, "Forward Look", cols = 1:7, rows = 1:nrow(prerelease_all)+4,
                       rule = "=AND($E5<>$E4)", style = border)
 
-setColWidths(wb, 1, cols = c(1:6), widths=c(18,"auto",30,10,10), hidden=c(rep(FALSE,4),TRUE))
+setColWidths(wb, 1, cols = c(1:7), widths=c(18,"auto",20,10,10,10,60), hidden=c(rep(FALSE,4),TRUE))
 setRowHeights(wb, 1, 3, 30)
 
 header_st <- createStyle(fgFill = "#1F497D", textDecoration = "Bold", fontColour = "#FFFFFF")
 cell_st   <- createStyle(halign = "left")
 
-openxlsx::addStyle(wb,1,header_st,4,c(1:6))
+openxlsx::addStyle(wb,1,header_st,4,c(1:7))
 
 addStyle(wb, 1, style = titleStyle, rows = 1, cols = 1)
 addStyle(wb, 1, style = subtitleStyle, rows = 2, cols = 1)
 addStyle(wb, 1, style = linkStyle, rows = 3, cols = 1, stack = TRUE)
-addStyle(wb, 1, style = cell_st, cols = 1:6, rows = 5:nrow(prerelease_all)+4, gridExpand = TRUE, stack = TRUE)
+addStyle(wb, 1, style = cell_st, cols = 1:7, rows = 5:nrow(prerelease_all)+4, gridExpand = TRUE, stack = TRUE)
+addStyle(wb, 1, style = wrap_style, rows = 5:(nrow(prerelease_all)+4), cols = 7, gridExpand = TRUE, stack=TRUE)
 showGridLines(wb, 1, showGridLines = FALSE)
 
 saveWorkbook(wb, "Forward Look/Forward Look.xlsx", overwrite = TRUE, returnValue = FALSE)
