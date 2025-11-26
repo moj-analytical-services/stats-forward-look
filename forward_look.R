@@ -110,24 +110,26 @@ prerelease_all2 <- prerelease_all_t %>%
              grepl("February", publication.date.temp) == TRUE & grepl("2024|2028|2032|2036|2040", publication.date.temp) == FALSE ~ paste0("28 ", publication.date.temp),
              grepl("April|June|September|November", publication.date.temp) == TRUE ~ paste0("30 ", publication.date.temp),
              TRUE ~ paste0("31 ", publication.date.temp)
-           ),
-         Week = lubridate::isoweek(dmy(publication.date)),
-         Year = lubridate::isoyear(dmy(publication.date))) %>%
+         ),
+         publication.date=dmy(publication.date),
+         Week_commences = floor_date(publication.date, "week", week_start=1)) %>%
+         #Week = week(dmy(publication.date)),
+         #Year = year(dmy(publication.date)))
   select(-publication.date.temp)
 
-start_date <- floor_date(Sys.Date() - years(1), "week")
+start_date <- floor_date(Sys.Date() - years(1), "week", week_start=1)
 end_date <- Sys.Date() + years(3)
 
 dates <- tibble(
   Week_commences = seq(start_date, end_date, by="week"),
-  Week = isoweek(Week_commences),
-  Year = isoyear(Week_commences),
+  Week = week(Week_commences),
+  Year = year(Week_commences),
   Month = month(Week_commences, label=TRUE, abbr=FALSE)
 )
 
 prerelease_weeks <- dates %>%
-  full_join(prerelease_all2, by=c("Week", "Year")) %>%
-  arrange(Year, Week)
+  full_join(prerelease_all2, by="Week_commences") %>%
+  arrange(Week_commences)
 
 rowvector <- seq_len(nrow(prerelease_weeks))
 current_week <- floor_date(Sys.Date(), unit="week", week_start=1)
