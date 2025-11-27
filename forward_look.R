@@ -310,13 +310,13 @@ names(govuk_link) <- c("Click here to view on the gov.uk Research and Statistics
 class(govuk_link) <- "hyperlink"
 
 wb <- openxlsx::createWorkbook()
-openxlsx::addWorksheet(wb, "Forward Look")
+openxlsx::addWorksheet(wb, "Forward look (weekly)")
 modifyBaseFont(wb, fontSize = 9, fontColour = "#000000", fontName = "Arial")
-openxlsx::writeData(wb, "Forward Look","MoJ Statistics Forward Look",
+openxlsx::writeData(wb, 1,"MoJ Statistics Forward Look (Weekly View)",
                     startRow = 1)
-openxlsx::writeData(wb,"Forward Look", paste("This list contains a week-by-week view of regular MoJ Official Statistics releases that have been pre-announced on the gov.uk release calendar. The list is updated every week on a Friday."), startRow = 2)
-openxlsx::writeData(wb,"Forward Look", govuk_link,startRow = 3)
-openxlsx::writeData(wb, "Forward Look", paste("Last updated: ", format(Sys.Date(),"%A %d %B %Y")), startRow=4)
+openxlsx::writeData(wb,1, paste("This list contains a week-by-week view of regular MoJ Official Statistics releases that have been pre-announced on the gov.uk release calendar. The list is updated every week on a Friday."), startRow = 2)
+openxlsx::writeData(wb,1, govuk_link,startRow = 3)
+openxlsx::writeData(wb,1, paste("Last updated: ", format(Sys.Date(),"%A %d %B %Y")), startRow=4)
 
 selections <- c("Week Commencing",
                 "Publication Title",
@@ -326,7 +326,7 @@ selections <- c("Week Commencing",
                 "Type",
                 "Usual publication month(s)")
 
-openxlsx::writeData(wb,"Forward Look", select(prerelease_all, all_of(selections)), startRow = 6)
+openxlsx::writeData(wb,1, select(prerelease_all, all_of(selections)), startRow = 6)
 
 arialStyle    <- createStyle(fontName="Arial")
 titleStyle    <- createStyle(fontSize = 16, textDecoration = "bold")  
@@ -350,23 +350,23 @@ canc          <- createStyle(bgFill = "#FFC7CE", fontColour = "#9C0006")
 #                      rule = "=AND(LEN($E7)>0,MOD(RIGHT($E7,2),2)=0)", style = evenStyle)
 #conditionalFormatting(wb, "Forward Look", cols = 1:7, rows = 1:nrow(prerelease_all)+6,
 #                      rule = "=AND(LEN($E7)>0,MOD(RIGHT($E7,2),2)=1)", style = oddStyle)
-conditionalFormatting(wb, "Forward Look", cols = 1:7, rows = 7:(nrow(prerelease_all)+7),
+conditionalFormatting(wb, 1, cols = 1:7, rows = 7:(nrow(prerelease_all)+7),
                       rule = '=AND($A7<>$A6)', style = border)
-conditionalFormatting(wb, "Forward Look", cols=1:8, rows=7:(nrow(prerelease_all)+6),
+conditionalFormatting(wb, 1, cols=1:8, rows=7:(nrow(prerelease_all)+6),
                       rule = '=LEFT($A7, 3)="MON"', style=border_left)
-conditionalFormatting(wb, "Forward Look", cols=1:7, rows=7:(nrow(prerelease_all)+6),
+conditionalFormatting(wb, 1, cols=1:7, rows=7:(nrow(prerelease_all)+6),
                       rule = '=LEFT($A7,3)<>"MON"', style=m_titleStyle, stack=TRUE)
-conditionalFormatting(wb, "Forward Look", cols=2, rows=7:(nrow(prerelease_all)+6), 
+conditionalFormatting(wb, 1, cols=2, rows=7:(nrow(prerelease_all)+6), 
                       rule = '=AND($B7<>"")', style=bold_st)
-conditionalFormatting(wb, "Forward Look", cols = 1, rows = 1:nrow(prerelease_all)+6,
+conditionalFormatting(wb, 1, cols = 1, rows = 1:nrow(prerelease_all)+6,
                       rule = "=AND(LEN($E7)>0,MOD(RIGHT($E7,2),2)=0,$E7=$E6)", style = hideStyleEven)
-conditionalFormatting(wb, "Forward Look", cols = 1, rows = 1:nrow(prerelease_all)+6,
+conditionalFormatting(wb, 1, cols = 1, rows = 1:nrow(prerelease_all)+6,
                       rule = "=AND(LEN($E7)>0,MOD(RIGHT($E7,2),2)=1,$E7=$E6)", style = hideStyleOdd)
-conditionalFormatting(wb, "Forward Look", cols=4, rows=7:(nrow(prerelease_all)+6),
+conditionalFormatting(wb, 1, cols=4, rows=7:(nrow(prerelease_all)+6),
                       rule = '=AND($D7="confirmed")', style=conf)
-conditionalFormatting(wb, "Forward Look", cols=4, rows=7:(nrow(prerelease_all)+6),
+conditionalFormatting(wb, 1, cols=4, rows=7:(nrow(prerelease_all)+6),
                       rule = '=AND($D7="provisional")', style=prov)
-conditionalFormatting(wb, "Forward Look", cols=4, rows=7:(nrow(prerelease_all)+6),
+conditionalFormatting(wb, 1, cols=4, rows=7:(nrow(prerelease_all)+6),
                       rule = '=AND($D7="cancelled")', style=canc)
 
 setColWidths(wb, 1, cols = c(1:12), widths=c(25,80,25,25,10,10,30), hidden=c(rep(FALSE,4),TRUE, TRUE, FALSE))
@@ -438,27 +438,29 @@ freezePane(wb, 2, firstCol=TRUE)
 
 ##### ADD WORKSHEET OF PUBLICATION INFO #####
 openxlsx::addWorksheet(wb, "Publications info")
-openxlsx::writeData(wb, 3,"MoJ Statistics Publications Information",
-                    startRow = 1)
+openxlsx::writeData(wb, 3,"MoJ Statistics Publications Information", startRow = 1)
 openxlsx::writeData(wb,3, paste("This list contains information about all regular MoJ Official Statistics publications."), startRow = 2)
-openxlsx::writeData(wb,3, publication_info, startRow = 4)
+openxlsx::writeData(wb, 3, paste("Last updated: ", format(Sys.Date(),"%A %d %B %Y")), startRow=4)
+openxlsx::writeData(wb,3, publication_info, startRow = 6)
 
 linkStyle <- createStyle(fontColour="#0563C1", textDecoration="underline")
 
-setColWidths(wb, 3, cols = 1:8,
-             widths = c(80, 25, 30, 30, 30, 30, 15, 60))
+setColWidths(wb, 3, cols = 1:8, widths = c(80, 25, 30, 30, 30, 30, 15, 60))
 
-setRowHeights(wb, 3, c(4:(nrows+4)), 20)
+setRowHeights(wb, 3, c(3, 6), 30)
+setRowHeights(wb, 3, c(7:(nrows+6)), 20)
 
-addStyle(wb, 3, header_st, rows=4,cols=1:8)
+addStyle(wb, 3, header_st, rows=6,cols=1:8)
 addStyle(wb, 3, style = titleStyle, rows = 1, cols = 1)
 addStyle(wb, 3, style = subtitleStyle, rows = 2, cols = 1)
-addStyle(wb, 3, style= borderStyle, rows=4:(nrows+4), cols=1:8, gridExpand=TRUE, stack=TRUE)
-addStyle(wb, 3, style = mth_infoStyle, rows=4:(nrows+4), cols=1:8, gridExpand=TRUE, stack=TRUE)
-addStyle(wb, 3, style = bold_st, rows=4:(nrows+4), cols=1, gridExpand=TRUE, stack=TRUE)
-addStyle(wb, 3, style = linkStyle, rows=5:(nrows+4), cols = 2, gridExpand=TRUE, stack=TRUE)
+addStyle(wb, 3, style = linkStyle, rows = 3, cols = 1, stack = TRUE)
+addStyle(wb, 3, style = bold_st2, rows = 4, cols=1, stack=TRUE)
+addStyle(wb, 3, style= borderStyle, rows=6:(nrows+6), cols=1:8, gridExpand=TRUE, stack=TRUE)
+addStyle(wb, 3, style = mth_infoStyle, rows=6:(nrows+6), cols=1:8, gridExpand=TRUE, stack=TRUE)
+addStyle(wb, 3, style = bold_st, rows=6:(nrows+6), cols=1, gridExpand=TRUE, stack=TRUE)
+addStyle(wb, 3, style = linkStyle, rows=7:(nrows+6), cols = 2, gridExpand=TRUE, stack=TRUE)
 
 showGridLines(wb, 3, showGridLines = FALSE)
-addFilter(wb, 3, rows=4, cols=1:8)
+addFilter(wb, 3, rows=6, cols=1:8)
 
 saveWorkbook(wb, "Forward Look/Forward Look.xlsx", overwrite = TRUE, returnValue = FALSE)
