@@ -93,7 +93,7 @@ for (i in seq_along(prerelease_all_t$long_title)) {
 
 
 #Combine forward look with publication leads
-lookup_wb <- read.xlsx("Stats Publication Leads.xlsx") %>% select(long_title, `Publication.Month(s)`, `Lead.Contact`, G6, G7, `Justice.Data`, Mailbox)
+lookup_wb <- read.xlsx("Stats Publication Leads.xlsx") %>% select(long_title, `Publication.Month(s)`, `Lead.Contact`, G6, G7, `Justice.Data`, Mailbox, URL)
 prerelease_all_t <- prerelease_all_t %>% 
   mutate(long_title=str_squish(str_to_lower(long_title))) %>%
   left_join(lookup_wb %>% mutate(long_title=str_squish(str_to_lower(long_title))), by="long_title") 
@@ -187,6 +187,7 @@ names(prerelease_all) <- c("Week Commencing",
                            "Grade 7",
                            "Justice Data",
                            "Mailbox",
+                           "URL",
                            "Publication Date")
 
 # for testing purposes
@@ -245,7 +246,7 @@ pub_month_grid <- pubs_canonical %>%
   # keep useful lookup columns to the left of the matrix
   select(
     long_title_norm, long_title,
-    `Lead.Contact`, G6, G7, `Justice.Data`, Mailbox, `Publication.Month(s)`
+    `Lead.Contact`, G6, G7, `Justice.Data`, Mailbox, `Publication.Month(s)`, URL
   ) %>%
   tidyr::crossing(months)
 
@@ -258,7 +259,7 @@ publication_by_month_wide <- pub_month_grid %>%
                              "")
   ) %>%  # column headings
   select(
-    long_title, `Lead.Contact`, G6, G7, `Justice.Data`, Mailbox, `Publication.Month(s)`,
+    long_title, `Lead.Contact`, G6, G7, `Justice.Data`, Mailbox, `Publication.Month(s)`, URL,
     month_col, cell_value
   ) %>%
   tidyr::pivot_wider(
@@ -270,26 +271,38 @@ publication_by_month_wide <- pub_month_grid %>%
   ) %>%
   arrange(str_to_lower(long_title))
 
-names(publication_by_month_wide)[1:7] <- c("Publication series",
+names(publication_by_month_wide)[1:8] <- c("Publication series",
                                       "Lead contact", 
                                       "Grade 6",
                                       "Grade 7",
                                       "Justice Data",
                                       "Mailbox",
-                                      "Usual publication month(s)")
+                                      "Usual publication month(s)",
+                                      "URL")
 
 publication_info <- publication_by_month_wide %>%
   select("Publication series",
+         "URL",
          "Usual publication month(s)",
          "Lead contact", 
          "Grade 6",
          "Grade 7",
          "Justice Data",
          "Mailbox"
-         )
+         ) %>%
+  mutate(
+    URL = paste0(
+      "HYPERLINK(\"",
+      URL,
+      "\", \"",
+      "Link to publication",
+      "\")"
+    )
+  )
+class(publication_info$URL) <- "formula"
 
 publication_by_month_wide <- publication_by_month_wide %>%
-  select(-c("Lead contact", "Grade 6", "Grade 7", "Justice Data", "Mailbox"))
+  select(-c("Lead contact", "Grade 6", "Grade 7", "Justice Data", "Mailbox", "URL"))
 
 # <---------------------------------------------------- CREATE WORKBOOK ---------------------------------------------------->
 govuk_link        <- c("https://www.gov.uk/search/research-and-statistics?content_store_document_type=upcoming_statistics&organisations%5B%5D=ministry-of-justice&order=release-date-oldest")
@@ -356,7 +369,7 @@ conditionalFormatting(wb, "Forward Look", cols=4, rows=7:(nrow(prerelease_all)+6
 conditionalFormatting(wb, "Forward Look", cols=4, rows=7:(nrow(prerelease_all)+6),
                       rule = '=AND($D7="cancelled")', style=canc)
 
-setColWidths(wb, 1, cols = c(1:12), widths=c(25,80,25,10,10,10,30), hidden=c(rep(FALSE,4),TRUE, TRUE, FALSE))
+setColWidths(wb, 1, cols = c(1:12), widths=c(25,80,25,25,10,10,30), hidden=c(rep(FALSE,4),TRUE, TRUE, FALSE))
 setRowHeights(wb, 1, 3, 30)
 
 hdr_rows <- which(!grepl("Mon", prerelease_all$`Week Commencing`)) + 6 
@@ -430,19 +443,22 @@ openxlsx::writeData(wb, 3,"MoJ Statistics Publications Information",
 openxlsx::writeData(wb,3, paste("This list contains information about all regular MoJ Official Statistics publications."), startRow = 2)
 openxlsx::writeData(wb,3, publication_info, startRow = 4)
 
-setColWidths(wb, 3, cols = 1:7,
-             widths = c(80, 30, 30, 30, 30, 15, 60))
+linkStyle <- createStyle(fontColour="#0563C1", textDecoration="underline")
+
+setColWidths(wb, 3, cols = 1:8,
+             widths = c(80, 25, 30, 30, 30, 30, 15, 60))
 
 setRowHeights(wb, 3, c(4:(nrows+4)), 20)
 
-addStyle(wb, 3, header_st, rows=4,cols=1:7)
+addStyle(wb, 3, header_st, rows=4,cols=1:8)
 addStyle(wb, 3, style = titleStyle, rows = 1, cols = 1)
 addStyle(wb, 3, style = subtitleStyle, rows = 2, cols = 1)
-addStyle(wb, 3, style= borderStyle, rows=4:(nrows+4), cols=1:7, gridExpand=TRUE, stack=TRUE)
-addStyle(wb, 3, style = mth_infoStyle, rows=4:(nrows+4), cols=1:7, gridExpand=TRUE, stack=TRUE)
+addStyle(wb, 3, style= borderStyle, rows=4:(nrows+4), cols=1:8, gridExpand=TRUE, stack=TRUE)
+addStyle(wb, 3, style = mth_infoStyle, rows=4:(nrows+4), cols=1:8, gridExpand=TRUE, stack=TRUE)
 addStyle(wb, 3, style = bold_st, rows=4:(nrows+4), cols=1, gridExpand=TRUE, stack=TRUE)
+addStyle(wb, 3, style = linkStyle, rows=5:(nrows+4), cols = 2, gridExpand=TRUE, stack=TRUE)
 
 showGridLines(wb, 3, showGridLines = FALSE)
-addFilter(wb, 3, rows=4, cols=1:7)
+addFilter(wb, 3, rows=4, cols=1:8)
 
 saveWorkbook(wb, "Forward Look/Forward Look.xlsx", overwrite = TRUE, returnValue = FALSE)
