@@ -219,6 +219,11 @@ for (row in 1:nrow(prerelease_all)) {
 
 # 1) Canonical list of publications from the lookup workbook
 pubs_canonical <- lookup_wb %>%
+  bind_rows(
+    prerelease_all2 %>%
+      filter(is.na(`Publication.Month(s)`)) %>%
+      select(long_title)
+  ) %>%
   mutate(
     long_title_norm = str_squish(str_to_lower(long_title))
   ) %>%
