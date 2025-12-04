@@ -170,7 +170,8 @@ prerelease_all <- prerelease_all %>%
   }) %>%
   bind_rows() %>%
   select(-c(Year, Month, long_title)) %>%
-  mutate(publication.date=format(as.Date(publication.date, format="%d %b %Y"), "%a %d %b %Y"))
+  mutate(publication.date.confirm = format(as.Date(publication.date) - weeks(4), "%a %d %b %Y"),
+         publication.date=format(as.Date(publication.date, format="%d %b %Y"), "%a %d %b %Y"))
 
 
 names(prerelease_all) <- c("Week Commencing",
@@ -188,7 +189,8 @@ names(prerelease_all) <- c("Week Commencing",
                            "Justice Data",
                            "Mailbox",
                            "URL",
-                           "Publication Date")
+                           "Publication Date",
+                           "Confirm release by")
 
 # for testing purposes
 # prerelease_all = rbind(prerelease_all, c(6, 2024, "Experimental release"))
@@ -327,6 +329,7 @@ selections <- c("Week Commencing",
                 "Publication Title",
                 "Publication Date",
                 "Status",
+                "Confirm release by",
                 "Week",
                 "Type",
                 "Usual publication month(s)")
@@ -355,11 +358,11 @@ canc          <- createStyle(bgFill = "#FFC7CE", fontColour = "#9C0006")
 #                      rule = "=AND(LEN($E7)>0,MOD(RIGHT($E7,2),2)=0)", style = evenStyle)
 #conditionalFormatting(wb, "Forward Look", cols = 1:7, rows = 1:nrow(prerelease_all)+6,
 #                      rule = "=AND(LEN($E7)>0,MOD(RIGHT($E7,2),2)=1)", style = oddStyle)
-conditionalFormatting(wb, 1, cols = 1:7, rows = 7:(nrow(prerelease_all)+7),
+conditionalFormatting(wb, 1, cols = 1:8, rows = 7:(nrow(prerelease_all)+7),
                       rule = '=AND($A7<>$A6)', style = border)
-conditionalFormatting(wb, 1, cols=1:8, rows=7:(nrow(prerelease_all)+6),
+conditionalFormatting(wb, 1, cols=1:9, rows=7:(nrow(prerelease_all)+6),
                       rule = '=LEFT($A7, 3)="MON"', style=border_left)
-conditionalFormatting(wb, 1, cols=1:7, rows=7:(nrow(prerelease_all)+6),
+conditionalFormatting(wb, 1, cols=1:8, rows=7:(nrow(prerelease_all)+6),
                       rule = '=LEFT($A7,3)<>"MON"', style=m_titleStyle, stack=TRUE)
 conditionalFormatting(wb, 1, cols=2, rows=7:(nrow(prerelease_all)+6), 
                       rule = '=AND($B7<>"")', style=bold_st)
@@ -374,7 +377,7 @@ conditionalFormatting(wb, 1, cols=4, rows=7:(nrow(prerelease_all)+6),
 conditionalFormatting(wb, 1, cols=4, rows=7:(nrow(prerelease_all)+6),
                       rule = '=AND($D7="cancelled")', style=canc)
 
-setColWidths(wb, 1, cols = c(1:12), widths=c(25,80,25,25,10,10,30), hidden=c(rep(FALSE,4),TRUE, TRUE, FALSE))
+setColWidths(wb, 1, cols = c(1:12), widths=c(25,80,25,15,25,10,30, 30), hidden=c(rep(FALSE,5),TRUE, TRUE, FALSE))
 setRowHeights(wb, 1, 3, 30)
 
 hdr_rows <- which(!grepl("Mon", prerelease_all$`Week Commencing`)) + 6 
@@ -386,14 +389,14 @@ header_st <- createStyle(fgFill = "#1D609D", textDecoration = "Bold", fontSize=1
 header_st_info <- createStyle(fgFill = "#003057", textDecoration = "Bold", fontSize=10, fontColour = "#FFFFFF", valign="center", halign="left")
 cell_st   <- createStyle(halign = "left", valign="center")
 
-addStyle(wb, 1, header_st,6,c(1:7))
+addStyle(wb, 1, header_st,6,c(1:8))
 addStyle(wb, 1, style = titleStyle, rows = 1, cols = 1)
 addStyle(wb, 1, style = subtitleStyle, rows = 2, cols = 1)
 addStyle(wb, 1, style = linkStyle, rows = 3, cols = 1, stack = TRUE)
 addStyle(wb, 1, style = bold_st2, rows = 4, cols=1, stack=TRUE)
-addStyle(wb, 1, style = cell_st, cols = 1:7, rows = 1:nrow(prerelease_all)+6, gridExpand = TRUE, stack = TRUE)
+addStyle(wb, 1, style = cell_st, cols = 1:8, rows = 1:nrow(prerelease_all)+6, gridExpand = TRUE, stack = TRUE)
 #addStyle(wb, 1, style = wrap_style, rows = 1:(nrow(prerelease_all)+6), cols = 8:10, gridExpand = TRUE, stack=TRUE)
-addStyle(wb, 1, style= border_left, rows = 7:(nrow(prerelease_all)+6), cols=8, gridExpand = TRUE, stack=TRUE)
+addStyle(wb, 1, style= border_left, rows = 7:(nrow(prerelease_all)+6), cols=9, gridExpand = TRUE, stack=TRUE)
 
 showGridLines(wb, 1, showGridLines = FALSE)
 addFilter(wb, 1, rows=6, cols=1:7)
