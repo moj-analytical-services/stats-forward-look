@@ -381,7 +381,7 @@ setColWidths(wb, 1, cols = c(1:12), widths=c(25,80,25,15,25,10,30, 30), hidden=c
 setRowHeights(wb, 1, 3, 30)
 
 hdr_rows <- which(!grepl("Mon", prerelease_all$`Week Commencing`)) + 6 
-week_rows <- which(grepl("Mon", prerelease_all$`Week Commencing`) & !grepl("Offender management statistics", prerelease_all$`Publication Title`)) + 6
+week_rows <- which(grepl("Mon", prerelease_all$`Week Commencing`)) + 6
 setRowHeights(wb, 1, c(6, hdr_rows), 20)
 setRowHeights(wb, 1, week_rows, 20)
 
