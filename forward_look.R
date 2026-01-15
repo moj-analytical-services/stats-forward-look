@@ -321,7 +321,7 @@ openxlsx::addWorksheet(wb, "Forward look (weekly)")
 modifyBaseFont(wb, fontSize = 9, fontColour = "#000000", fontName = "Arial")
 openxlsx::writeData(wb, 1,"MoJ Statistics Forward Look (Weekly View)",
                     startRow = 1)
-openxlsx::writeData(wb,1, paste("This list contains a week-by-week view of regular MoJ Official Statistics releases that have been pre-announced on the gov.uk release calendar. The list is updated every week on a Friday."), startRow = 2)
+openxlsx::writeData(wb,1, paste("This list contains a week-by-week view of regular MoJ Official Statistics releases that have been pre-announced on the gov.uk release calendar. The list is updated every week on a Thursday."), startRow = 2)
 openxlsx::writeData(wb,1, govuk_link,startRow = 3)
 openxlsx::writeData(wb,1, paste("Last updated: ", format(Sys.Date(),"%A %d %B %Y")), startRow=4)
 
@@ -405,7 +405,7 @@ addFilter(wb, 1, rows=6, cols=1:7)
 openxlsx::addWorksheet(wb, "Monthly grid")
 openxlsx::writeData(wb, 2,"MoJ Statistics Forward Look (Monthly Grid)",
                     startRow = 1)
-openxlsx::writeData(wb,2, paste("This list contains a monthly grid of pre-announced releases of all MoJ Official Statistics publications on the gov.uk release calendar. The list is updated every week on a Friday."), startRow = 2)
+openxlsx::writeData(wb,2, paste("This list contains a monthly grid of pre-announced releases of all MoJ Official Statistics publications on the gov.uk release calendar. The list is updated every week on a Thursday."), startRow = 2)
 openxlsx::writeData(wb,2, govuk_link,startRow = 3)
 openxlsx::writeData(wb,2, paste("Last updated: ", format(Sys.Date(),"%A %d %B %Y")), startRow=4)
 openxlsx::writeData(wb,2, publication_by_month_wide, startRow = 6)
